@@ -31,27 +31,26 @@ You are on branch ${branchName}. It's already pushed to origin.
 - Make reasonable assumptions, document them in commits
 
 ## Context Management
-Your context window is precious. Spawn subagents aggressively:
-- Use Task tool for exploration, research, multi-file searches
+Your context window is precious. DO NOT run more than 3-4 search commands yourself.
+- Use Task tool with subagent_type=Explore for any codebase exploration
 - Use Task tool for self-contained subtasks
 - Keep main thread for coordination and git operations
-- Reading more than 3-4 files? Spawn an agent instead.
 
 ## Git Workflow
 Commit as a software engineer would - logical chunks of work, meaningful messages.
 The only hard rule: ALWAYS push before you exit. Your work is lost if it's not pushed.
 
-## Before Exiting Checklist
-Before you finish:
-1. Commit and push all changes
-2. Create a PR: gh pr create --title "<task summary>" --body "<description of changes>"
-3. If blocked: note blockers in PR body
+## FINAL STEP (MANDATORY)
+Before exiting, you MUST run these commands:
+1. git add -A && git commit -m "<summary of changes>" (if any uncommitted changes)
+2. git push
+3. gh pr create --title "<task summary>" --body "<description of changes>"
 
-On any failure: commit current state, push, create PR describing what went wrong, then exit.
+If blocked or failed: still push and create PR, note what went wrong in the PR body.
 `.trim();
 }
 
-function getOrchestratorPrompt(prompt, workDir) {
+function getOrchestratorPrompt(prompt, workDir, branchName) {
   return `
 You are an orchestrator. Your job is to:
 1. Figure out which repo the user is asking about
@@ -59,16 +58,18 @@ You are an orchestrator. Your job is to:
 3. Create and push a feature branch
 
 Workflow:
-1. Use gh CLI to list repos and identify the right one from the user's prompt
-2. Clone to ${workDir}/repo
-3. Examine the repo to identify required tools (check README, config files, lock files)
-4. Check what tools are already available, install anything missing
-5. Run dependency installation (npm install, pip install, go mod download, etc.)
-6. Create and push the feature branch:
+1. Configure git to use the GitHub token:
+   git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password=$GH_TOKEN"; }; f'
+2. Use gh CLI to list repos and identify the right one from the user's prompt
+3. Clone to ${workDir}/repo
+4. Examine the repo to identify required tools (check README, config files, lock files)
+5. Check what tools are already available, install anything missing
+6. Run dependency installation (npm install, pip install, go mod download, etc.)
+7. Create and push the feature branch:
    git checkout -b ${branchName}
    git commit --allow-empty -m "chore: start task"
    git push -u origin HEAD
-7. Exit successfully
+8. Exit successfully
 
 Do NOT start working on the actual task - just prepare the environment.
 
@@ -174,7 +175,7 @@ async function runTask(id, prompt, taskDir) {
 
   // Phase 1: Orchestrator - identify and clone repo
   await appendFile(logFile, `\n=== ORCHESTRATOR PHASE ===\n`);
-  await runOrchestrator(id, prompt, taskDir, logFile);
+  await runOrchestrator(id, prompt, taskDir, branchName, logFile);
   await appendFile(logFile, `\n=== ORCHESTRATOR COMPLETE ===\n\n`);
 
   // Phase 2: Worker - run in cloned repo
@@ -185,9 +186,9 @@ async function runTask(id, prompt, taskDir) {
   return result;
 }
 
-async function runOrchestrator(id, prompt, taskDir, logFile) {
+async function runOrchestrator(id, prompt, taskDir, branchName, logFile) {
   const logStream = createWriteStream(logFile, { flags: 'a' });
-  const fullPrompt = getOrchestratorPrompt(prompt, taskDir);
+  const fullPrompt = getOrchestratorPrompt(prompt, taskDir, branchName);
 
   return new Promise((resolve, reject) => {
     const proc = pty.spawn('claude', [
