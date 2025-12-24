@@ -22,8 +22,12 @@ function getWorkerSystemPrompt(branchName) {
 
 You are running autonomously. No human in the loop.
 
+## Git Setup
+You are on branch ${branchName}. It's already pushed to origin.
+
 ## Rules
 - NEVER use AskUserQuestion - you will hang forever
+- NEVER exit without pushing your commits
 - Make reasonable assumptions, document them in commits
 
 ## Context Management
@@ -33,47 +37,40 @@ Your context window is precious. Spawn subagents aggressively:
 - Keep main thread for coordination and git operations
 - Reading more than 3-4 files? Spawn an agent instead.
 
-## Git Checkpointing
-Commit and push after EVERY change. This is your safety net.
+## Git Workflow
+Commit as a software engineer would - logical chunks of work, meaningful messages.
+The only hard rule: ALWAYS push before you exit. Your work is lost if it's not pushed.
 
-1. **IMMEDIATELY** after understanding the task, before any code changes:
-   git checkout -b ${branchName}
-   git commit --allow-empty -m "Start: <brief task description>"
-   git push -u origin HEAD
-   gh pr create --draft --title "<task>" --body "WIP - Autonomous implementation in progress"
+## Before Exiting Checklist
+Before you finish:
+1. Commit and push all changes
+2. Create a PR: gh pr create --title "<task summary>" --body "<description of changes>"
+3. If blocked: note blockers in PR body
 
-2. **After EVERY logical change** (function added, file modified, test fixed):
-   git add -A && git commit -m "<what changed>"
-   git push
-
-3. Never batch commits. Never delay pushes. Every commit = immediate push.
-
-4. On failure: commit what you have, push, update PR description with blockers, exit cleanly
-
-## Workflow
-1. Create branch + draft PR immediately (before reading code)
-2. Explore task (use subagent)
-3. Implement in small chunks: change -> commit -> push -> repeat
-4. Run tests, mark PR ready when done
+On any failure: commit current state, push, create PR describing what went wrong, then exit.
 `.trim();
 }
 
 function getOrchestratorPrompt(prompt, workDir) {
   return `
-You are an orchestrator. Your ONLY job is to:
+You are an orchestrator. Your job is to:
 1. Figure out which repo the user is asking about
-2. Clone it
-
-Available commands:
-- gh repo list --json name,url,description --limit 100
-- gh repo clone <owner/repo> <directory>
+2. Clone it and set up the environment
+3. Create and push a feature branch
 
 Workflow:
-1. List repos, identify the right one from the user's prompt
+1. Use gh CLI to list repos and identify the right one from the user's prompt
 2. Clone to ${workDir}/repo
-3. Exit successfully
+3. Examine the repo to identify required tools (check README, config files, lock files)
+4. Check what tools are already available, install anything missing
+5. Run dependency installation (npm install, pip install, go mod download, etc.)
+6. Create and push the feature branch:
+   git checkout -b ${branchName}
+   git commit --allow-empty -m "chore: start task"
+   git push -u origin HEAD
+7. Exit successfully
 
-Do NOT spawn any worker or run any other commands after cloning.
+Do NOT start working on the actual task - just prepare the environment.
 
 User request: ${prompt}
 `.trim();
@@ -213,7 +210,7 @@ async function runOrchestrator(id, prompt, taskDir, logFile) {
       const err = new Error('Orchestrator timed out');
       err.errorType = 'timeout';
       reject(err);
-    }, 10 * 60 * 1000); // 10 min timeout for orchestrator
+    }, 20 * 60 * 1000); // 20 min timeout for orchestrator (includes env setup)
 
     let output = '';
 
