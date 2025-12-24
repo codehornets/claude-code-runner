@@ -216,6 +216,7 @@
   <script>
     let currentLogTaskId = null;
     let logRefreshInterval = null;
+    let lastLogText = '';
 
     async function fetchTasks() {
       try {
@@ -361,8 +362,21 @@
 
     async function fetchLogs(id) {
       try {
+        // Skip update if user is selecting text
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) {
+          return;
+        }
+
         const res = await fetch('/task/' + id + '/logs');
         const text = await res.text();
+
+        // Skip update if content hasn't changed
+        if (text === lastLogText) {
+          return;
+        }
+        lastLogText = text;
+
         const content = document.getElementById('log-content');
         const wasAtBottom = content.scrollHeight - content.scrollTop <= content.clientHeight + 50;
 
@@ -385,6 +399,7 @@
 
     async function showLogs(id) {
       currentLogTaskId = id;
+      lastLogText = '';
       document.getElementById('modal-title').textContent = 'Logs: ' + id;
       document.getElementById('log-content').textContent = 'Loading...';
       document.getElementById('log-modal').classList.add('open');
@@ -399,6 +414,7 @@
     function closeModal() {
       document.getElementById('log-modal').classList.remove('open');
       currentLogTaskId = null;
+      lastLogText = '';
       if (logRefreshInterval) {
         clearInterval(logRefreshInterval);
         logRefreshInterval = null;
