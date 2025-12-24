@@ -77,21 +77,6 @@ User request: ${prompt}
 `.trim();
 }
 
-// Error detection patterns
-const ERROR_PATTERNS = {
-  authExpired: /authenticate|login required|unauthorized|OAuth|session expired/i,
-  capacityReached: /capacity|rate limit|too many requests|throttl|quota|overloaded|\b529\b|\b503\b/i
-};
-
-function detectError(output) {
-  if (ERROR_PATTERNS.authExpired.test(output)) {
-    return { type: 'auth_expired', message: 'Auth expired - re-login required on host machine' };
-  }
-  if (ERROR_PATTERNS.capacityReached.test(output)) {
-    return { type: 'capacity_reached', message: 'Claude capacity reached - try again later' };
-  }
-  return null;
-}
 
 app.post('/task', async (req, res) => {
   const { prompt } = req.body;
@@ -226,13 +211,6 @@ async function runOrchestrator(id, prompt, taskDir, branchName, logFile) {
       clearTimeout(timeout);
       logStream.end();
 
-      const detectedError = detectError(output);
-      if (detectedError) {
-        const err = new Error(detectedError.message);
-        err.errorType = detectedError.type;
-        return reject(err);
-      }
-
       if (exitCode !== 0) {
         return reject(new Error(`Orchestrator exited with code ${exitCode}`));
       }
@@ -283,21 +261,6 @@ async function runWorker(id, prompt, repoDir, branchName, logFile) {
     proc.onExit(async ({ exitCode }) => {
       clearTimeout(timeout);
       logStream.end();
-
-      const detectedError = detectError(output);
-      if (detectedError) {
-        console.error(`[${id}] ${detectedError.type.toUpperCase()}: ${detectedError.message}`);
-        tasks.set(id, {
-          ...tasks.get(id),
-          status: 'failed',
-          error: detectedError.message,
-          errorType: detectedError.type,
-          finished: new Date().toISOString()
-        });
-        const err = new Error(detectedError.message);
-        err.errorType = detectedError.type;
-        return reject(err);
-      }
 
       // Parse PR URL from worker output
       const prMatch = output.match(/https:\/\/github\.com\/[^\s]+\/pull\/\d+/);
