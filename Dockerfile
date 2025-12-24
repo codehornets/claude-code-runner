@@ -32,6 +32,14 @@ RUN chown -R node:node /app
 # Create work directory
 RUN mkdir -p /tmp/work && chown -R node:node /tmp/work
 
+# Allow node user to install global packages (npm, pip, gem, etc.)
+# Claude runs as non-root but needs to install tools dynamically.
+# In a container, giving write access to /usr/local and /opt is safe.
+RUN chown -R node:node /usr/local /opt
+
+# Add user-local bin paths for tools that default to home directory (cargo, go, bun, etc.)
+ENV PATH=/home/node/.local/bin:/home/node/.cargo/bin:/home/node/go/bin:/home/node/.bun/bin:$PATH
+
 # Switch to non-root user
 USER node
 
