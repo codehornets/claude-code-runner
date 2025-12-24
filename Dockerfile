@@ -36,8 +36,8 @@ RUN mkdir -p /tmp/work && chown -R node:node /tmp/work
 USER node
 
 # Git config for commits (as node user)
-RUN git config --global user.email "claude-bot@localhost" \
-    && git config --global user.name "Claude Bot"
+RUN git config --global user.email "noreply@anthropic.com" \
+    && git config --global user.name "Claude"
 
 EXPOSE 3000
 CMD ["node", "src/server.js"]
