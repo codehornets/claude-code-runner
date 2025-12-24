@@ -75,7 +75,7 @@ Workflow:
 1. List repos, identify the right one from the user's prompt
 2. Clone to ${workDir}/repo
 3. cd into the cloned repo
-4. Run: claude -p "<prompt>" --system-prompt "<system>" --dangerously-skip-permissions
+4. Run: claude -p "<prompt>" --system-prompt "<system>" --output-format stream-json --dangerously-skip-permissions
 
 The worker system prompt MUST be exactly:
 """
