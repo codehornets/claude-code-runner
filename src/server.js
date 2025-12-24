@@ -192,6 +192,8 @@ async function runOrchestrator(id, prompt, taskDir) {
   return new Promise((resolve, reject) => {
     const proc = pty.spawn('claude', [
       '-p', fullPrompt,
+      '--output-format', 'stream-json',
+      '--verbose',
       '--dangerously-skip-permissions'
     ], {
       cwd: taskDir,
