@@ -4,7 +4,7 @@ Self hostable Claude Code runner to execute prompts from anywhere. Container acc
 
 ## Security
 
-This service has no built-in authentication. It is expected to be hosted behind a VPN or private network that only you have access to. Do not expose to the public internet.
+This service has no built-in authentication. It is expected to be hosted behind a VPN or private network that only you have access to. Do not expose to the public internet; doing so is a MAJOR security risk.
 
 ## How it Works
 
