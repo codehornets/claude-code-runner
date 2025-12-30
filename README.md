@@ -10,7 +10,7 @@ Claude Code uses your authenticated session from your OS (no API key). Claude Co
 
 The system uses a two-stage LLM architecture:
 
-### Orchestrator Claude
+### Orchestrator 
 
 The first Claude instance receives your prompt and is responsible for:
 - Parsing your task to identify which repository you're referring to
@@ -20,7 +20,7 @@ The first Claude instance receives your prompt and is responsible for:
 
 The orchestrator handles all the setup so the worker can focus purely on coding.
 
-### Worker Claude
+### Worker 
 
 A second Claude instance runs inside the cloned repository and:
 - Picks up the repo's existing `.claude/`, `.mcp.json`, and skills
